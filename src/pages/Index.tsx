@@ -1,11 +1,168 @@
+import { useState } from "react";
 import { Sparkles, Target, TrendingUp, Zap } from "lucide-react";
 import Logo from "@/components/Logo";
 import SearchInput from "@/components/SearchInput";
+import AssessmentFlow from "@/components/AssessmentFlow";
+import LearningPathDisplay from "@/components/LearningPathDisplay";
 import FeatureCard from "@/components/FeatureCard";
 import StepCard from "@/components/StepCard";
 import { Button } from "@/components/ui/button";
+import { api, LearningPath } from "@/lib/api";
+
+type AppPhase = "landing" | "assessment" | "generating" | "completed";
 
 const Index = () => {
+  const [phase, setPhase] = useState<AppPhase>("landing");
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [goal, setGoal] = useState<string>("");
+  const [learningPath, setLearningPath] = useState<LearningPath | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleSessionCreated = (newSessionId: string, userGoal: string) => {
+    setSessionId(newSessionId);
+    setGoal(userGoal);
+    setPhase("assessment");
+
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleAssessmentComplete = async () => {
+    if (!sessionId) return;
+
+    setPhase("generating");
+    setIsGenerating(true);
+
+    try {
+      // Generate learning path
+      await api.generatePath(sessionId);
+
+      // Retrieve the path
+      const pathData = await api.getLearningPath(sessionId);
+      setLearningPath(pathData.learningPath);
+      setPhase("completed");
+
+      // Scroll to top
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (error) {
+      console.error("Failed to generate path:", error);
+      // TODO: Show error to user
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleReset = () => {
+    setPhase("landing");
+    setSessionId(null);
+    setGoal("");
+    setLearningPath(null);
+    setIsGenerating(false);
+
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Show different content based on phase
+  if (phase === "assessment" && sessionId) {
+    return (
+      <div className="min-h-screen bg-background text-foreground">
+        {/* Animated Background Orbs */}
+        <div className="bg-blur-orb w-[600px] h-[600px] bg-malva top-0 left-0" />
+        <div className="bg-blur-orb w-[500px] h-[500px] bg-cielo top-1/4 right-0" />
+
+        {/* Simple Nav */}
+        <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-background/70 border-b border-border">
+          <div className="container mx-auto px-6 py-4">
+            <Logo />
+          </div>
+        </nav>
+
+        {/* Assessment Content */}
+        <section className="relative pt-32 pb-20 px-6">
+          <div className="container mx-auto">
+            <AssessmentFlow
+              sessionId={sessionId}
+              goal={goal}
+              onComplete={handleAssessmentComplete}
+            />
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  if (phase === "generating") {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
+        {/* Animated Background Orbs */}
+        <div className="bg-blur-orb w-[600px] h-[600px] bg-malva top-0 left-0" />
+        <div className="bg-blur-orb w-[500px] h-[500px] bg-cielo top-1/4 right-0" />
+
+        <div className="relative z-10 text-center space-y-8 p-6">
+          <div className="flex flex-col items-center gap-6">
+            <div className="relative">
+              <div className="w-20 h-20 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Sparkles className="w-8 h-8 text-primary animate-pulse" />
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h2 className="text-3xl font-bold">Creando tu ruta personalizada</h2>
+              <p className="text-muted-foreground max-w-md">
+                Analizando tu nivel de conocimiento y curando los mejores videos...
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-2 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2 animate-pulse">
+                <div className="w-2 h-2 bg-primary rounded-full" />
+                <span>Identificando temas clave</span>
+              </div>
+              <div className="flex items-center gap-2 animate-pulse" style={{ animationDelay: "0.3s" }}>
+                <div className="w-2 h-2 bg-primary rounded-full" />
+                <span>Buscando contenido de calidad</span>
+              </div>
+              <div className="flex items-center gap-2 animate-pulse" style={{ animationDelay: "0.6s" }}>
+                <div className="w-2 h-2 bg-primary rounded-full" />
+                <span>Estructurando módulos</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (phase === "completed" && learningPath) {
+    return (
+      <div className="min-h-screen bg-background text-foreground">
+        {/* Animated Background Orbs */}
+        <div className="bg-blur-orb w-[600px] h-[600px] bg-malva top-0 left-0" />
+        <div className="bg-blur-orb w-[500px] h-[500px] bg-cielo top-1/4 right-0" />
+
+        {/* Simple Nav */}
+        <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-background/70 border-b border-border">
+          <div className="container mx-auto px-6 py-4">
+            <Logo />
+          </div>
+        </nav>
+
+        {/* Learning Path Content */}
+        <section className="relative pt-32 pb-20 px-6">
+          <div className="container mx-auto">
+            <LearningPathDisplay
+              learningPath={learningPath}
+              onReset={handleReset}
+            />
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  // Landing page (default)
   return (
     <div className="min-h-screen bg-background text-foreground overflow-hidden">
       {/* Animated Background Orbs */}
@@ -51,7 +208,7 @@ const Index = () => {
             </p>
 
             <div className="pt-8">
-              <SearchInput />
+              <SearchInput onSessionCreated={handleSessionCreated} />
             </div>
           </div>
         </div>

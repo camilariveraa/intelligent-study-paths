@@ -1,0 +1,17 @@
+application "learning-path-agent-mvp" {
+
+  # Main API service
+  service "api" {
+    port = 8080
+    entrypoint = "src/services/api/index.ts"
+  }
+
+  # AI model for reasoning
+  ai "reasoner" {}
+
+  # Memory system
+  smartmemory "memory" {}
+
+  # Video storage (we'll populate this manually for MVP)
+  smartbucket "videos" {}
+}
